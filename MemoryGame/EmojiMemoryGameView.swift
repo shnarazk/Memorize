@@ -10,13 +10,12 @@ import SwiftUI
 struct EmojiMemoryGameView: View {
     @ObservedObject var viewModel: EmojiMemoryGame
     var body: some View {
-        HStack {
-            ForEach(viewModel.cards) { card in
-                CardView(card: card)
-                    .onTapGesture {
-                        self.viewModel.choose(card: card)
-                    }
-            }
+        Grid(items: viewModel.cards) { card in
+            CardView(card: card)
+                .onTapGesture {
+                    self.viewModel.choose(card: card)
+                }
+                .padding(4)
         }
         .padding()
         .foregroundColor(Color.orange)
@@ -46,7 +45,9 @@ struct CardView: View {
                 RoundedRectangle(cornerRadius: cornerRaius).stroke(lineWidth: edgeLineWidth)
                 Text(card.content)
             } else {
-                RoundedRectangle(cornerRadius: cornerRaius).fill()
+                if !card.isMatched {
+                    RoundedRectangle(cornerRadius: cornerRaius).fill()
+                }
             }
         }
         .font(Font.system(size: fontSize(for: size)))
