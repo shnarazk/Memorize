@@ -36,13 +36,85 @@ struct Pie: Shape {
         p.addLine(to: center)
         return p
     }
-//    var body: some View {
-//        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
-//    }
 }
 
-//struct Pie_Previews: PreviewProvider {
-//    static var previews: some View {
-//        Pie()
-//    }
-//}
+struct PieModifier: AnimatableModifier {
+    @State private var animatedTimeoutRemaining: Double = 0
+    
+    // MARK: - animation settings
+    var isFaceUp: Bool = true {
+        didSet {
+            if isFaceUp {
+                startTimer()
+            } else {
+                stopTimer()
+            }
+        }
+    }
+    var timeout: Int
+    var timeoutInterval: TimeInterval {
+        TimeInterval(timeout)
+    }
+    var faceUpTime: TimeInterval {
+        if let lastFaceUpDate = self.lastFaceUpDate {
+            return pastFaceUpTime + Date().timeIntervalSince(lastFaceUpDate)
+        } else {
+            return pastFaceUpTime
+        }
+    }
+    var lastFaceUpDate: Date?
+    var pastFaceUpTime: TimeInterval = 0
+    var timeoutRemaining: TimeInterval {
+        max(0, timeoutInterval - faceUpTime)
+    }
+    var timeoutRemainingRatio: Double {
+        (timeoutInterval > 0 && timeoutRemaining > 0) ? timeoutRemaining / timeoutInterval : 0
+    }
+    
+    var isConsumingBonusTime: Bool {
+        isFaceUp && timeoutRemaining > 0
+    }
+    private mutating func startTimer() {
+        if isConsumingBonusTime, lastFaceUpDate == nil {
+            lastFaceUpDate = Date()
+        }
+    }
+    private mutating func stopTimer() {
+        pastFaceUpTime = faceUpTime
+        self.lastFaceUpDate = nil
+    }
+    
+    private func startTimeoutAnimation() {
+        animatedTimeoutRemaining = self.timeoutRemainingRatio
+        withAnimation(.linear(duration: self.timeoutRemaining)) {
+            animatedTimeoutRemaining = 0
+        }
+    }
+    func body(content: Content) -> some View {
+        ZStack {
+            Pie(startAngle: Angle.degrees(0-90), endAngle: Angle.degrees(-animatedTimeoutRemaining*360-90), clockWise: true )
+                .onAppear{
+                    self.startTimeoutAnimation()
+                }
+                .padding()
+                .foregroundColor(.yellow)
+                .opacity(/*@START_MENU_TOKEN@*/0.8/*@END_MENU_TOKEN@*/)
+            content
+        }
+        .transition(AnyTransition.scale)
+    }
+}
+
+extension View {
+    func withPie(timeout: Int) -> some View {
+        self.modifier(PieModifier(timeout: timeout))
+    }
+}
+
+struct Pie_Previews: PreviewProvider {
+    static var previews: some View {
+        Text("Another sample")
+            .font(.title)
+            .withPie(timeout: 5)
+    }
+}
