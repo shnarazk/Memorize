@@ -52,6 +52,7 @@ struct PieModifier: AnimatableModifier {
         }
     }
     var timeout: Int
+    @Binding var flip: Bool
     var timeoutInterval: TimeInterval {
         TimeInterval(timeout)
     }
@@ -75,15 +76,19 @@ struct PieModifier: AnimatableModifier {
         isFaceUp && timeoutRemaining > 0
     }
     private mutating func startTimer() {
-        if isConsumingBonusTime, lastFaceUpDate == nil {
+        /* if isConsumingBonusTime, lastFaceUpDate == nil {
             lastFaceUpDate = Date()
-        }
+        } */
+        lastFaceUpDate = Date()
     }
     private mutating func stopTimer() {
         pastFaceUpTime = faceUpTime
         self.lastFaceUpDate = nil
     }
-    
+    private mutating func resetTimer() {
+        pastFaceUpTime = 0
+        self.lastFaceUpDate = nil
+    }
     private func startTimeoutAnimation() {
         animatedTimeoutRemaining = self.timeoutRemainingRatio
         withAnimation(.linear(duration: self.timeoutRemaining)) {
@@ -93,9 +98,12 @@ struct PieModifier: AnimatableModifier {
     func body(content: Content) -> some View {
         ZStack {
             Pie(startAngle: Angle.degrees(0-90), endAngle: Angle.degrees(-animatedTimeoutRemaining*360-90), clockWise: true )
-                .onAppear{
+                .onAppear {
                     self.startTimeoutAnimation()
                 }
+                .onChange(of: flip, perform: { value in
+                    self.startTimeoutAnimation()
+                })
                 .padding()
                 .foregroundColor(.yellow)
                 .opacity(/*@START_MENU_TOKEN@*/0.8/*@END_MENU_TOKEN@*/)
@@ -106,15 +114,17 @@ struct PieModifier: AnimatableModifier {
 }
 
 extension View {
-    func withPie(timeout: Int) -> some View {
-        self.modifier(PieModifier(timeout: timeout))
+    func withPie(timeout: Int, flag: Binding<Bool>) -> some View {
+        self.modifier(PieModifier(timeout: timeout, flip: flag))
     }
 }
 
 struct Pie_Previews: PreviewProvider {
     static var previews: some View {
-        Text("Another sample")
-            .font(.title)
-            .withPie(timeout: 5)
+        VStack{
+            Text("sample")
+                .font(.title)
+        }
+        .withPie(timeout: 10, flag: .constant(true))
     }
 }
